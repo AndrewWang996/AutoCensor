@@ -15,8 +15,10 @@ import java.util.List;
 public class AutoCensor {
 
 
+    private static final String BASE_PATH = System.getProperty("user.dir");
+
     public static String getFullPathToAudioFile(String fileName) {
-        return "/Users/andywang/Documents/MIT/AutoCensor/audiofiles/" + fileName;
+        return BASE_PATH + "/audiofiles/" + fileName;
     }
 
     private static final String CLEAN_AUDIO_SUFFIX = "(clean)";
@@ -24,7 +26,7 @@ public class AutoCensor {
     public static String getFullPathToOutputFile(String fileName) {
         int dotIndex = fileName.lastIndexOf(".");
         String cleanFileName = fileName.substring(0, dotIndex).concat(CLEAN_AUDIO_SUFFIX).concat(fileName.substring(dotIndex)) ;
-        return "/Users/andywang/Documents/MIT/AutoCensor/cleanfiles/" + cleanFileName;
+        return BASE_PATH + "/cleanfiles/" + cleanFileName;
     }
 
     public static void main(String[] args) throws Exception {
