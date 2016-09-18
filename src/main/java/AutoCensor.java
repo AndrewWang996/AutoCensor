@@ -6,22 +6,23 @@ import com.ibm.watson.developer_cloud.speech_to_text.v1.model.SpeechTimestamp;
 import com.ibm.watson.developer_cloud.speech_to_text.v1.model.Transcript;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by Andy Wang and Jesse Chou on 9/17/16.
  * Credit Kevin Wayne/Robert Sedgewick
+ * Future directions: stereo, realtime, applied to music (with background noise)
  */
 public class AutoCensor {
 
-
+    private static final int SAMPLE_RATE = 44100;
     private static final String BASE_PATH = System.getProperty("user.dir");
+    private static final String CLEAN_AUDIO_SUFFIX = "(clean)";
 
     public static String getFullPathToAudioFile(String fileName) {
         return BASE_PATH + "/audiofiles/" + fileName;
     }
-
-    private static final String CLEAN_AUDIO_SUFFIX = "(clean)";
 
     public static String getFullPathToOutputFile(String fileName) {
         int dotIndex = fileName.lastIndexOf(".");
@@ -30,13 +31,17 @@ public class AutoCensor {
     }
 
     public static void main(String[] args) throws Exception {
+
+        // set up words to censor
+        List<String> wordList = new ArrayList<String>(); // bad words list
+        wordList.add("shit");
+        wordList.add("dick");
+
         String wavFileName = args[0];
 
         if(wavFileName == null) {
             throw new Exception("no file supplied.");
         }
-
-        final int SAMPLE_RATE = 44100;
 
         String usr = "cba714e0-1997-4641-9d21-78e9e14203f5";
         String pwd = "JOKpzP8VO6YX";
@@ -44,32 +49,31 @@ public class AutoCensor {
         String outputStr = getFullPathToOutputFile(wavFileName);
 
         File aud = new File(audStr);
-
         double[] audio = StdAudio.read(audStr);
-
 
         SpeechToText speechToText = new SpeechToText(usr,pwd);
 
         RecognizeOptions recognizeOptions = new RecognizeOptions.Builder()
                 .timestamps(true)
                 .profanityFilter(true)
+                .continuous(true)
                 .build();
 
         ServiceCall<SpeechResults> serviceCall = speechToText.recognize(aud, recognizeOptions);
         SpeechResults speechResults = serviceCall.execute();
 
         List<Transcript> transcripts = speechResults.getResults();
-        List<SpeechTimestamp> timeStamps = transcripts.get(0)
-                .getAlternatives()
-                .get(0)
-                .getTimestamps();
 
-        for (SpeechTimestamp timeStamp: timeStamps) {
-            if (timeStamp.getWord().equals("****")) {
-                double start = timeStamp.getStartTime();
-                double end = timeStamp.getEndTime();
-                for (int i = (int)(start*SAMPLE_RATE); i < (int)(end*SAMPLE_RATE); i++) {
-                    audio[i] = 0;
+        for (Transcript t : transcripts) {
+            List<SpeechTimestamp> timeStamps = t.getAlternatives()
+                    .get(0)
+                    .getTimestamps();
+
+            for (SpeechTimestamp timeStamp: timeStamps) {
+                if (timeStamp.getWord().equals("****") || wordList.contains(timeStamp.getWord().toLowerCase())) {
+                    for (int i = (int)(timeStamp.getStartTime()*SAMPLE_RATE); i < (int)(timeStamp.getEndTime()*SAMPLE_RATE); i++) {
+                        audio[i] = 0;
+                    }
                 }
             }
         }
