@@ -1,76 +1,68 @@
-import org.json.simple.JSONObject;
-import org.json.simple.JSONArray;
-import org.json.simple.parser.ParseException;
-import org.json.simple.parser.JSONParser;
+import com.ibm.watson.developer_cloud.http.ServiceCall;
+import com.ibm.watson.developer_cloud.speech_to_text.v1.SpeechToText;
+import com.ibm.watson.developer_cloud.speech_to_text.v1.model.RecognizeOptions;
+import com.ibm.watson.developer_cloud.speech_to_text.v1.model.SpeechResults;
+import com.ibm.watson.developer_cloud.speech_to_text.v1.model.SpeechTimestamp;
+import com.ibm.watson.developer_cloud.speech_to_text.v1.model.Transcript;
 
-import edu.princeton.cs.algs4.In;
-import edu.princeton.cs.algs4.LinearProbingHashST;
-import edu.princeton.cs.algs4.Queue;
-import edu.princeton.cs.algs4.StdAudio;
-
+import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
 /**
- * Created by andywang on 9/17/16.
+ * Created by Andy Wang and Jesse Chou on 9/17/16.
+ * Credit Kevin Wayne/Robert Sedgewick
  */
 public class AutoCensor {
-    public static void main(String[] args){
-        final int SAMP_FREQ = 44100;
 
+    public static void main(String[] args) throws IOException, UnsupportedAudioFileException {
 
-        LinearProbingHashST<String, Queue<double[]>> st = new LinearProbingHashST<String, Queue<double[]>>();
+//        // create a new POST request
+//        PostMethod method = new PostMethod();
+//
+//        // add Headers
+//        method.addRequestHeader("Content-Type","audio/flac");
+//        method.addRequestHeader("Transfer-Encoding","chunked");
 
-//   LinearProbingHashST<String, Integer> badWords = new LinearProbingHashST<String, Integer>();
-        JSONParser parser = new JSONParser();
-        double[] audio = StdAudio.read("audio.wav");
-        In in = new In("sample.txt");
-//      In in2 = new In("badWords.txt");
-//      String[] bad = in2.readAllStrings();
-//      for (int i = 0; i < bad.length; i++) {
-//       badWords.put(bad[i], 0);
-//      }
+        final int SAMPLE_RATE = 44100;
 
+        String usr = "cba714e0-1997-4641-9d21-78e9e14203f5";
+        String pwd = "JOKpzP8VO6YX";
+        String audStr = "/Users/andywang/Downloads/cuss.wav";
 
-        String s = in.readAll();
-        try{
-            JSONObject all = (JSONObject)parser.parse(s);
-            JSONArray resultsArr = (JSONArray)parser.parse(all.get("results").toString());
-            JSONObject alt = (JSONObject)parser.parse(resultsArr.get(0).toString());
-            JSONArray altArr = (JSONArray)parser.parse(alt.get("alternatives").toString());
-            JSONObject time = (JSONObject)parser.parse(altArr.get(0).toString());
-            JSONArray timeArr = (JSONArray)parser.parse(time.get("timestamps").toString());
-            for (int i = 0; i < timeArr.size(); i++) {
-                JSONArray e = (JSONArray)parser.parse(timeArr.get(i).toString());
-                Queue<double[]> q;
-                if (st.contains(e.get(0).toString())) {
-                    // take Queue out, add to it, put Queue back in
-                    q = st.get(e.get(0).toString());
-                }
-                else {
-                    q = new Queue<double[]>();
-                }
-                double[] t = {Double.parseDouble(e.get(1).toString()), Double.parseDouble(e.get(2).toString())};
-                q.enqueue(t);
-                st.put(e.get(0).toString(), q);
-            }
+        File aud = new File(audStr);
 
-        }catch(ParseException pe){
-            System.out.println("position: " + pe.getPosition());
-            System.out.println(pe);
-        }
+        double[] audio = StdAudio.read(audStr);
 
-        for (String x : st.keys()) {
-            if (x.equals("****"))  {
-                for (double[] frame : st.get(x)) { // for each timeframe corresponding to this word
-                    for (int i = (int)(frame[0]*SAMP_FREQ); i < frame[1]*SAMP_FREQ; i++) {
-                        audio[i] = 0.0; // bleep out from st.get(x)[0] to st.get(x)[1];
-                    }
+        SpeechToText speechToText = new SpeechToText(usr,pwd);
+
+        RecognizeOptions recognizeOptions = new RecognizeOptions.Builder()
+                .timestamps(true)
+                .profanityFilter(true)
+                .build();
+
+        ServiceCall<SpeechResults> serviceCall = speechToText.recognize(aud, recognizeOptions);
+        SpeechResults speechResults = serviceCall.execute();
+
+        List<Transcript> transcripts = speechResults.getResults();
+        List<SpeechTimestamp> timeStamps = transcripts.get(0)
+                .getAlternatives()
+                .get(0)
+                .getTimestamps();
+
+        for (SpeechTimestamp timeStamp: timeStamps) {
+            if (timeStamp.getWord().equals("****")) {
+                double start = timeStamp.getStartTime();
+                double end = timeStamp.getEndTime();
+                for (int i = (int)(start*SAMPLE_RATE); i < (int)(end*SAMPLE_RATE); i++) {
+                    audio[i] = 0;
                 }
             }
-//       for (String y : badWords.keys()) {
-//           if (x.equalsIgnoreCase(y)) System.out.println(x); // bleep out from st.get(x)[0] to st.get(x)[1]; // if (x.equals("****")
-//       }
         }
-        StdAudio.save("out.wav", audio);
+
+        // output wav from double[]
+        StdAudio.save("output.wav", audio);
     }
 }
 
