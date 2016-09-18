@@ -12,13 +12,18 @@ import java.util.List;
 /**
  * Created by Andy Wang and Jesse Chou on 9/17/16.
  * Credit Kevin Wayne/Robert Sedgewick
- * Future directions: stereo, realtime, applied to music (with background noise)
+ * Future directions: stereo, realtime, applied to music (with background noise), other formats, bleep
+ *
+ * wav_file stereo
+ * % cuss.wav true
  */
 public class AutoCensor {
 
     private static final int SAMPLE_RATE = 44100;
     private static final String BASE_PATH = System.getProperty("user.dir");
     private static final String CLEAN_AUDIO_SUFFIX = "(clean)";
+    private static final String usr = "cba714e0-1997-4641-9d21-78e9e14203f5";
+    private static final String pwd = "JOKpzP8VO6YX";
 
     public static String getFullPathToAudioFile(String fileName) {
         return BASE_PATH + "/audiofiles/" + fileName;
@@ -43,13 +48,20 @@ public class AutoCensor {
             throw new Exception("no file supplied.");
         }
 
-        String usr = "cba714e0-1997-4641-9d21-78e9e14203f5";
-        String pwd = "JOKpzP8VO6YX";
         String audStr = getFullPathToAudioFile(wavFileName);
         String outputStr = getFullPathToOutputFile(wavFileName);
 
         File aud = new File(audStr);
         double[] audio = StdAudio.read(audStr);
+
+        // if stereo
+        if (args[1].equals("true")) {
+            double[] newAudio = new double[audio.length / 2];
+            for (int n = 0; n < audio.length / 2; n++) {
+                newAudio[n] = audio[n * 2];
+            }
+            audio = newAudio;
+        }
 
         SpeechToText speechToText = new SpeechToText(usr,pwd);
 
@@ -79,6 +91,7 @@ public class AutoCensor {
         }
 
         // output wav from double[]
+
         StdAudio.save(outputStr, audio);
     }
 }
