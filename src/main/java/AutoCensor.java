@@ -5,9 +5,7 @@ import com.ibm.watson.developer_cloud.speech_to_text.v1.model.SpeechResults;
 import com.ibm.watson.developer_cloud.speech_to_text.v1.model.SpeechTimestamp;
 import com.ibm.watson.developer_cloud.speech_to_text.v1.model.Transcript;
 
-import javax.sound.sampled.*;
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -16,24 +14,37 @@ import java.util.List;
  */
 public class AutoCensor {
 
-    public static void main(String[] args) throws IOException, UnsupportedAudioFileException {
 
-//        // create a new POST request
-//        PostMethod method = new PostMethod();
-//
-//        // add Headers
-//        method.addRequestHeader("Content-Type","audio/flac");
-//        method.addRequestHeader("Transfer-Encoding","chunked");
+    public static String getFullPathToAudioFile(String fileName) {
+        return "/Users/andywang/Documents/MIT/AutoCensor/audiofiles/" + fileName;
+    }
+
+    private static final String CLEAN_AUDIO_SUFFIX = "(clean)";
+
+    public static String getFullPathToOutputFile(String fileName) {
+        int dotIndex = fileName.lastIndexOf(".");
+        String cleanFileName = fileName.substring(0, dotIndex).concat(CLEAN_AUDIO_SUFFIX).concat(fileName.substring(dotIndex)) ;
+        return "/Users/andywang/Documents/MIT/AutoCensor/cleanfiles/" + cleanFileName;
+    }
+
+    public static void main(String[] args) throws Exception {
+        String wavFileName = args[0];
+
+        if(wavFileName == null) {
+            throw new Exception("no file supplied.");
+        }
 
         final int SAMPLE_RATE = 44100;
 
         String usr = "cba714e0-1997-4641-9d21-78e9e14203f5";
         String pwd = "JOKpzP8VO6YX";
-        String audStr = "/Users/andywang/Downloads/cuss.wav";
+        String audStr = getFullPathToAudioFile(wavFileName);
+        String outputStr = getFullPathToOutputFile(wavFileName);
 
         File aud = new File(audStr);
 
         double[] audio = StdAudio.read(audStr);
+
 
         SpeechToText speechToText = new SpeechToText(usr,pwd);
 
@@ -62,7 +73,6 @@ public class AutoCensor {
         }
 
         // output wav from double[]
-        StdAudio.save("output.wav", audio);
+        StdAudio.save(outputStr, audio);
     }
 }
-
