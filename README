@@ -1,1 +1,5 @@
 # AutoCensor
+Automatically censors curse words (or words of your choice) from an audio file.
+Useful for censoring news reporting, music with dirty lyrics (acapellas). It can also be used to protect private information during phone calls/group conferences. For example, if you are on the phone and someone around you who doesn't know you're on the phone says something that you would not like the other side to hear, this program would censor things that they say, according to your specifications.
+Feed in an audio file with curse words, output the same audio file with censored words.
+Curse word vocabulary can be modified.
